@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Калькулятор разделения счета</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: var(--tg-theme-bg-color, #ffffff);
+            color: var(--tg-theme-text-color, #000000);
+        }
+        .editable-cell:hover {
+            background-color: var(--tg-theme-secondary-bg-color, #eff6ff);
+            cursor: pointer;
+        }
+        .editable-cell {
+            border-radius: 4px;
+            padding: 4px 8px;
+            transition: all 0.2s;
+        }
+        .sticky-table-container {
+            max-height: 50vh;
+            overflow-y: auto;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+        .sticky-table thead th {
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            background: var(--tg-theme-button-color, #2563eb);
+            color: var(--tg-theme-button-text-color, #ffffff);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .tg-button {
+            background-color: var(--tg-theme-button-color, #2563eb);
+            color: var(--tg-theme-button-text-color, #ffffff);
+        }
+        .tg-button:hover {
+            background-color: var(--tg-theme-button-color, #1d4ed8);
+        }
+        .table-container {
+            font-size: 11px;
+        }
+        .compact-input {
+            padding: 2px 4px;
+            font-size: 11px;
+        }
+        @media (max-width: 480px) {
+            .sticky-table-container {
+                max-height: 40vh;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        // Инициализация Telegram WebApp
+        window.Telegram.WebApp.ready();
+        window.Telegram.WebApp.expand();
+        window.Telegram.WebApp.enableClosingConfirmation();
+
+        const SplitBillCalculator = () => {
+            const [participants, setParticipants] = useState(['Участник 1', 'Участник 2']);
+            const [newParticipant, setNewParticipant] = useState('');
+            const [includeServiceFee, setIncludeServiceFee] = useState(true);
+            
+            const initialItems = [
+                { id: 1, name: 'Новая позиция', quantity: 1, pricePerUnit: 0, totalPrice: 0, assignments: {} }
+            ];
+
+            const [items, setItems] = useState(() => {
+                const saved = window.Telegram.WebApp.CloudStorage?.getItem('splitBillItems');
+                return saved ? JSON.parse(saved) : initialItems;
+            });
+
+            // Сохранение в Telegram Cloud Storage
+            useEffect(() => {
+                if (window.Telegram.WebApp.CloudStorage) {
+                    window.Telegram.WebApp.CloudStorage.setItem('splitBillItems', JSON.stringify(items));
+                }
+            }, [items]);
+
+            useEffect(() => {
+                if (window.Telegram.WebApp.CloudStorage) {
+                    window.Telegram.WebApp.CloudStorage.setItem('splitBillParticipants', JSON.stringify(participants));
+                }
+            }, [participants]);
+
+            useEffect(() => {
+                if (window.Telegram.WebApp.CloudStorage) {
+                    window.Telegram.WebApp.CloudStorage.setItem('splitBillServiceFee', JSON.stringify(includeServiceFee));
+                }
+            }, [includeServiceFee]);
+
+            const addParticipant = () => {
+                if (newParticipant.trim() && !participants.includes(newParticipant.trim())) {
+                    setParticipants([...participants, newParticipant.trim()]);
+                    setNewParticipant('');
+                    // Виbrация при добавлении
+                    window.Telegram.WebApp.HapticFeedback.impactOccurred('light');
+                }
+            };
+
+            const removeParticipant = (participantToRemove) => {
+                setParticipants(participants.filter(p => p !== participantToRemove));
+                setItems(prevItems => 
+                    prevItems.map(item => ({
+                        ...item,
+                        assignments: Object.fromEntries(
+                            Object.entries(item.assignments).filter(([key]) => key !== participantToRemove)
+                        )
+                    }))
+                );
+                window.Telegram.WebApp.HapticFeedback.impactOccurred('medium');
+            };
+
+            const addNewItem = () => {
+                const newId = Math.max(...items.map(item => item.id), 0) + 1;
+                setItems([...items, {
+                    id: newId,
+                    name: 'Новая позиция',
+                    quantity: 1,
+                    pricePerUnit: 0,
+                    totalPrice: 0,
+                    assignments: {}
+                }]);
+                window.Telegram.WebApp.HapticFeedback.impactOccurred('light');
+            };
+
+            const removeItem = (itemId) => {
+                setItems(items.filter(item => item.id !== itemId));
+                window.Telegram.WebApp.HapticFeedback.impactOccurred('medium');
+            };
+
+            const updateItem = (itemId, field, value) => {
+                setItems(prevItems => 
+                    prevItems.map(item => {
+                        if (item.id === itemId) {
+                            const updatedItem = { ...item };
+                            
+                            if (field === 'name') {
+                                updatedItem.name = value;
+                            } else if (field === 'quantity') {
+                                updatedItem.quantity = Math.max(1, parseInt(value) || 1);
+                                updatedItem.totalPrice = updatedItem.quantity * updatedItem.pricePerUnit;
+                            } else if (field === 'pricePerUnit') {
+                                updatedItem.pricePerUnit = Math.max(0, parseFloat(value) || 0);
+                                updatedItem.totalPrice = updatedItem.quantity * updatedItem.pricePerUnit;
+                            } else if (field === 'totalPrice') {
+                                updatedItem.totalPrice = Math.max(0, parseFloat(value) || 0);
+                                updatedItem.pricePerUnit = updatedItem.quantity > 0 ? updatedItem.totalPrice / updatedItem.quantity : 0;
+                            }
+                            
+                            return updatedItem;
+                        }
+                        return item;
+                    })
+                );
+            };
+
+            const updateAssignment = (itemId, participant, quantity) => {
+                setItems(prevItems => 
+                    prevItems.map(item => {
+                        if (item.id === itemId) {
+                            const updatedAssignments = { ...item.assignments };
+                            const parsedQuantity = parseInt(quantity) || 0;
+                            
+                            if (parsedQuantity > 0) {
+                                updatedAssignments[participant] = parsedQuantity;
+                            } else {
+                                delete updatedAssignments[participant];
+                            }
+                            
+                            return { ...item, assignments: updatedAssignments };
+                        }
+                        return item;
+                    })
+                );
+                window.Telegram.WebApp.HapticFeedback.selectionChanged();
+            };
+
+            const calculateTotalBill = () => {
+                return items.reduce((sum, item) => sum + item.totalPrice, 0);
+            };
+
+            const calculateParticipantTotal = (participant) => {
+                let subtotal = 0;
+                
+                items.forEach(item => {
+                    const participantQuantity = item.assignments[participant] || 0;
+                    if (participantQuantity > 0) {
+                        const totalAssignedQuantity = Object.values(item.assignments).reduce((sum, qty) => sum + qty, 0);
+                        const pricePerAssignedUnit = totalAssignedQuantity > 0 ? item.totalPrice / totalAssignedQuantity : 0;
+                        subtotal += pricePerAssignedUnit * participantQuantity;
+                    }
+                });
+
+                const totalBill = calculateTotalBill();
+                const serviceFee = includeServiceFee ? totalBill * 0.1 : 0;
+                const participantServiceFee = totalBill > 0 ? (subtotal / totalBill) * serviceFee : 0;
+                
+                return subtotal + participantServiceFee;
+            };
+
+            const shareResults = () => {
+                const totalBill = calculateTotalBill();
+                const serviceFee = includeServiceFee ? totalBill * 0.1 : 0;
+                const totalWithService = totalBill + serviceFee;
+
+                let message = "💸 Разделение счета:\n\n";
+                
+                participants.forEach(participant => {
+                    const total = calculateParticipantTotal(participant);
+                    if (total > 0) {
+                        message += `👤 ${participant}: ${total.toFixed(2)} ₽\n`;
+                    }
+                });
+
+                message += `\n📊 Общий счет: ${totalBill.toFixed(2)} ₽`;
+                if (includeServiceFee) {
+                    message += `\n🔄 Сервисный сбор: ${serviceFee.toFixed(2)} ₽`;
+                }
+                message += `\n💰 Итого: ${totalWithService.toFixed(2)} ₽`;
+                message += `\n\n🤖 Рассчитано в @${window.Telegram.WebApp.initDataUnsafe?.bot?.username || 'split_bill_bot'}`;
+
+                // Отправляем сообщение в чат
+                window.Telegram.WebApp.sendData(message);
+                window.Telegram.WebApp.close();
+            };
+
+            // Устанавливаем кнопку в Telegram
+            useEffect(() => {
+                window.Telegram.WebApp.MainButton.text = "Поделиться результатами";
+                window.Telegram.WebApp.MainButton.color = "#2ea043";
+                window.Telegram.WebApp.MainButton.show();
+                
+                window.Telegram.WebApp.MainButton.onClick(shareResults);
+                
+                return () => {
+                    window.Telegram.WebApp.MainButton.hide();
+                };
+            }, [items, participants, includeServiceFee]);
+
+            const clearAllData = () => {
+                window.Telegram.WebApp.showConfirm('Вы уверены, что хотите очистить все данные?', (confirmed) => {
+                    if (confirmed) {
+                        setItems(initialItems);
+                        setParticipants(['Участник 1', 'Участник 2']);
+                        setIncludeServiceFee(true);
+                        window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+                    }
+                });
+            };
+
+            const EditableCell = ({ value, onSave, type = "text", className = "" }) => {
+                const [isEditing, setIsEditing] = useState(false);
+                const [editValue, setEditValue] = useState(value);
+
+                const handleSave = () => {
+                    onSave(editValue);
+                    setIsEditing(false);
+                    window.Telegram.WebApp.HapticFeedback.selectionChanged();
+                };
+
+                const handleKeyPress = (e) => {
+                    if (e.key === 'Enter') {
+                        handleSave();
+                    } else if (e.key === 'Escape') {
+                        setEditValue(value);
+                        setIsEditing(false);
+                    }
+                };
+
+                useEffect(() => {
+                    setEditValue(value);
+                }, [value]);
+
+                if (isEditing) {
+                    return React.createElement('input', {
+                        type,
+                        value: editValue,
+                        onChange: (e) => setEditValue(e.target.value),
+                        onBlur: handleSave,
+                        onKeyDown: handleKeyPress,
+                        className: `w-full compact-input border rounded focus:ring-1 focus:ring-blue-500 ${className}`,
+                        autoFocus: true
+                    });
+                }
+
+                return React.createElement('div', {
+                    onClick: () => setIsEditing(true),
+                    className: `editable-cell ${className}`,
+                    title: "Нажмите для редактирования"
+                }, type === 'number' ? parseFloat(value).toFixed(2) : value);
+            };
+
+            const totalBill = calculateTotalBill();
+            const serviceFee = includeServiceFee ? totalBill * 0.1 : 0;
+            const totalWithService = totalBill + serviceFee;
+
+            return React.createElement('div', {
+                className: "p-2 min-h-screen",
+                style: { 
+                    backgroundColor: 'var(--tg-theme-bg-color, #ffffff)',
+                    color: 'var(--tg-theme-text-color, #000000)'
+                }
+            }, 
+                // Header
+                React.createElement('div', {
+                    className: "text-center mb-4"
+                },
+                    React.createElement('h1', {
+                        className: "text-xl font-bold flex items-center justify-center"
+                    }, "🍻 Разделение счета")
+                ),
+
+                // Service fee checkbox
+                React.createElement('div', {
+                    className: "mb-3 p-2 bg-gray-50 rounded-lg"
+                },
+                    React.createElement('div', {
+                        className: "flex items-center"
+                    },
+                        React.createElement('input', {
+                            type: "checkbox",
+                            id: "serviceFee",
+                            checked: includeServiceFee,
+                            onChange: (e) => setIncludeServiceFee(e.target.checked),
+                            className: "mr-2 w-4 h-4"
+                        }),
+                        React.createElement('label', {
+                            htmlFor: "serviceFee",
+                            className: "text-xs font-medium"
+                        }, "Сервисный сбор 10%")
+                    )
+                ),
+
+                // Participants
+                React.createElement('div', {
+                    className: "mb-3 p-2 bg-gray-50 rounded-lg"
+                },
+                    React.createElement('h2', {
+                        className: "text-sm font-semibold mb-2"
+                    }, "👥 Участники"),
+                    React.createElement('div', {
+                        className: "flex flex-wrap gap-1 mb-2"
+                    }, participants.map((participant, index) => 
+                        React.createElement('span', {
+                            key: index,
+                            className: "px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium flex items-center"
+                        }, 
+                            participant,
+                            React.createElement('button', {
+                                onClick: () => removeParticipant(participant),
+                                className: "ml-1 text-blue-600 hover:text-red-600 font-bold text-sm"
+                            }, "×")
+                        )
+                    )),
+                    React.createElement('div', {
+                        className: "flex gap-1"
+                    },
+                        React.createElement('input', {
+                            type: "text",
+                            value: newParticipant,
+                            onChange: (e) => setNewParticipant(e.target.value),
+                            placeholder: "Новый участник",
+                            className: "flex-1 px-2 py-1 border rounded text-xs",
+                            onKeyPress: (e) => e.key === 'Enter' && addParticipant()
+                        }),
+                        React.createElement('button', {
+                            onClick: addParticipant,
+                            className: "px-2 py-1 tg-button rounded text-xs"
+                        }, "+")
+                    )
+                ),
+
+                // Add new item button
+                React.createElement('div', {
+                    className: "mb-2 flex gap-2"
+                },
+                    React.createElement('button', {
+                        onClick: addNewItem,
+                        className: "px-3 py-1 bg-green-600 text-white rounded text-xs"
+                    }, "+ Позиция"),
+                    React.createElement('button', {
+                        onClick: clearAllData,
+                        className: "px-3 py-1 bg-red-600 text-white rounded text-xs"
+                    }, "Очистить")
+                ),
+
+                // Table
+                React.createElement('div', {
+                    className: "sticky-table-container mb-4"
+                },
+                    React.createElement('table', {
+                        className: "w-full border-collapse bg-white sticky-table table-container",
+                        style: { minWidth: '400px' }
+                    },
+                        React.createElement('thead', null,
+                            React.createElement('tr', null,
+                                React.createElement('th', {
+                                    className: "px-1 py-2 text-left font-semibold text-xs"
+                                }, "Название"),
+                                React.createElement('th', {
+                                    className: "px-1 py-2 text-center font-semibold text-xs"
+                                }, "Кол"),
+                                React.createElement('th', {
+                                    className: "px-1 py-2 text-right font-semibold text-xs"
+                                }, "Цена"),
+                                React.createElement('th', {
+                                    className: "px-1 py-2 text-right font-semibold text-xs"
+                                }, "Сумма"),
+                                ...participants.map((participant, index) => 
+                                    React.createElement('th', {
+                                        key: index,
+                                        className: "px-1 py-2 text-center font-semibold text-xs min-w-[40px]"
+                                    }, participant.slice(0, 6))
+                                ),
+                                React.createElement('th', {
+                                    className: "px-1 py-2 text-center font-semibold text-xs"
+                                }, "🗑")
+                            )
+                        ),
+                        React.createElement('tbody', null,
+                            items.map((item, index) => 
+                                React.createElement('tr', {
+                                    key: item.id,
+                                    className: `${index % 2 === 0 ? 'bg-gray-50' : 'bg-white'}`
+                                },
+                          
