@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Калькулятор разделения счета</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 100%;
+            padding: 10px;
+            min-height: 100vh;
+        }
+        
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 20px;
+            padding: 20px 0;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 15px;
+            margin-bottom: 15px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+        }
+        
+        .participant-tag {
+            display: inline-block;
+            background: #e3f2fd;
+            color: #1976d2;
+            padding: 5px 10px;
+            border-radius: 20px;
+            margin: 2px;
+            font-size: 12px;
+            position: relative;
+        }
+        
+        .remove-participant {
+            margin-left: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            color: #f44336;
+        }
+        
+        .input-group {
+            display: flex;
+            gap: 5px;
+            margin-bottom: 10px;
+        }
+        
+        input, button {
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+        
+        input {
+            flex: 1;
+        }
+        
+        .btn {
+            background: #1976d2;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-weight: 500;
+            transition: background 0.3s;
+        }
+        
+        .btn:hover {
+            background: #1565c0;
+        }
+        
+        .btn-success {
+            background: #4caf50;
+        }
+        
+        .btn-success:hover {
+            background: #45a049;
+        }
+        
+        .btn-danger {
+            background: #f44336;
+            padding: 5px 8px;
+            font-size: 12px;
+        }
+        
+        .table-container {
+            overflow-x: auto;
+            margin-bottom: 15px;
+        }
+        
+        table {
+            width: 100%;
+            min-width: 600px;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        
+        th, td {
+            padding: 8px 4px;
+            text-align: center;
+            border-bottom: 1px solid #eee;
+            font-size: 11px;
+        }
+        
+        th {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            font-weight: 600;
+        }
+        
+        .editable {
+            background: none;
+            border: none;
+            width: 100%;
+            text-align: center;
+            font-size: 11px;
+            padding: 2px;
+        }
+        
+        .editable:focus {
+            outline: 2px solid #1976d2;
+            border-radius: 4px;
+        }
+        
+        .quantity-input {
+            width: 40px;
+            padding: 2px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            text-align: center;
+            font-size: 11px;
+        }
+        
+        .results-grid {
+            display: grid;
+            gap: 15px;
+        }
+        
+        .result-card {
+            background: linear-gradient(135deg, #4caf50 0%, #45a049 100%);
+            color: white;
+            border-radius: 15px;
+            padding: 15px;
+        }
+        
+        .result-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.2);
+        }
+        
+        .result-row:last-child {
+            border-bottom: none;
+            font-weight: bold;
+            font-size: 16px;
+        }
+        
+        .checkbox-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .share-btn {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 25px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 20px;
+            box-shadow: 0 4px 15px rgba(255,107,107,0.4);
+            transition: transform 0.3s;
+        }
+        
+        .share-btn:hover {
+            transform: translateY(-2px);
+        }
+        
+        .total-highlight {
+            font-size: 18px;
+            font-weight: bold;
+            color: #4caf50;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🍻 Калькулятор разделения счета</h1>
+            <p>Легко делим счета в ресторанах</p>
+        </div>
+
+        <!-- Service Fee -->
+        <div class="card">
+            <div class="checkbox-container">
+                <input type="checkbox" id="serviceFee" checked>
+                <label for="serviceFee">Включить сервисный сбор 10%</label>
+            </div>
+        </div>
+
+        <!-- Participants -->
+        <div class="card">
+            <h3>👥 Участники</h3>
+            <div id="participantsList">
+                <span class="participant-tag">Участник 1<span class="remove-participant" onclick="removeParticipant('Участник 1')">×</span></span>
+                <span class="participant-tag">Участник 2<span class="remove-participant" onclick="removeParticipant('Участник 2')">×</span></span>
+            </div>
+            <div class="input-group">
+                <input type="text" id="newParticipant" placeholder="Добавить участника">
+                <button class="btn" onclick="addParticipant()">Добавить</button>
+            </div>
+        </div>
+
+        <!-- Add Item -->
+        <div class="card">
+            <button class="btn btn-success" onclick="addNewItem()" style="width: 100%; margin-bottom: 10px;">+ Добавить позицию</button>
+            <button class="btn btn-danger" onclick="clearAll()" style="width: 100%;">🗑️ Очистить все</button>
+        </div>
+
+        <!-- Items Table -->
+        <div class="card">
+            <div class="table-container">
+                <table id="itemsTable">
+                    <thead>
+                        <tr>
+                            <th>Название</th>
+                            <th>Кол-во</th>
+                            <th>Цена/шт</th>
+                            <th>Сумма</th>
+                            <th>Участник 1</th>
+                            <th>Участник 2</th>
+                            <th>🗑️</th>
+                        </tr>
+                    </thead>
+                    <tbody id="itemsBody">
+                        <tr data-id="1">
+                            <td><input class="editable" value="Новая позиция" onblur="updateItem(1, 'name', this.value)"></td>
+                            <td><input class="editable" type="number" value="1" min="1" onblur="updateItem(1, 'quantity', this.value)"></td>
+                            <td><input class="editable" type="number" value="0" min="0" step="0.01" onblur="updateItem(1, 'pricePerUnit', this.value)"></td>
+                            <td><input class="editable" type="number" value="0" min="0" step="0.01" onblur="updateItem(1, 'totalPrice', this.value)"></td>
+                            <td><input class="quantity-input" type="number" min="0" value="0" onchange="updateAssignment(1, 'Участник 1', this.value)"></td>
+                            <td><input class="quantity-input" type="number" min="0" value="0" onchange="updateAssignment(1, 'Участник 2', this.value)"></td>
+                            <td><button class="btn-danger" onclick="removeItem(1)">🗑️</button></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Results -->
+        <div class="card">
+            <div class="result-card">
+                <h3 style="margin-bottom: 15px;">💰 Результаты</h3>
+                <div id="results">
+                    <div class="result-row">
+                        <span>Участник 1:</span>
+                        <span>0.00 ₽</span>
+                    </div>
+                    <div class="result-row">
+                        <span>Участник 2:</span>
+                        <span>0.00 ₽</span>
+                    </div>
+                    <div class="result-row">
+                        <span>Общий счет:</span>
+                        <span class="total-highlight">0.00 ₽</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <button class="share-btn" onclick="shareResults()">
+            📤 Поделиться результатами
+        </button>
+    </div>
+
+    <script>
+        let participants = ['Участник 1', 'Участник 2'];
+        let items = [
+            { id: 1, name: 'Новая позиция', quantity: 1, pricePerUnit: 0, totalPrice: 0, assignments: {} }
+        ];
+        let nextId = 2;
+
+        function addParticipant() {
+            const input = document.getElementById('newParticipant');
+            const name = input.value.trim();
+            if (name && !participants.includes(name)) {
+                participants.push(name);
+                input.value = '';
+                updateUI();
+            }
+        }
+
+        function removeParticipant(name) {
+            participants = participants.filter(p => p !== name);
+            items.forEach(item => {
+                delete item.assignments[name];
+            });
+            updateUI();
+        }
+
+        function addNewItem() {
+            items.push({
+                id: nextId++,
+                name: 'Новая позиция',
+                quantity: 1,
+                pricePerUnit: 0,
+                totalPrice: 0,
+                assignments: {}
+            });
+            updateUI();
+        }
+
+        function removeItem(id) {
+            items = items.filter(item => item.id !== id);
+            updateUI();
+        }
+
+        function updateItem(id, field, value) {
+            const item = items.find(i => i.id === id);
+            if (!item) return;
+
+            if (field === 'name') {
+                item.name = value;
+            } else if (field === 'quantity') {
+                item.quantity = Math.max(1, parseInt(value) || 1);
+                item.totalPrice = item.quantity * item.pricePerUnit;
+            } else if (field === 'pricePerUnit') {
+                item.pricePerUnit = Math.max(0, parseFloat(value) || 0);
+                item.totalPrice = item.quantity * item.pricePerUnit;
+            } else if (field === 'totalPrice') {
+                item.totalPrice = Math.max(0, parseFloat(value) || 0);
+                item.pricePerUnit = item.quantity > 0 ? item.totalPrice / item.quantity : 0;
+            }
+            
+            updateUI();
+        }
+
+        function updateAssignment(id, participant, quantity) {
+            const item = items.find(i => i.id === id);
+            if (!item) return;
+
+            const qty = parseInt(quantity) || 0;
+            if (qty > 0) {
+                item.assignments[participant] = qty;
+            } else {
+                delete item.assignments[participant];
+            }
+            
+            updateUI();
+        }
+
+        function calculateTotal(participant) {
+            let total = 0;
+            items.forEach(item => {
+                const participantQty = item.assignments[participant] || 0;
+                if (participantQty > 0) {
+                    const totalAssigned = Object.values(item.assignments).reduce((sum, qty) => sum + qty, 0);
+                    const pricePerAssigned = totalAssigned > 0 ? item.totalPrice / totalAssigned : 0;
+                    total += pricePerAssigned * participantQty;
+                }
+            });
+
+            const includeService = document.getElementById('serviceFee').checked;
+            if (includeService) {
+                const billTotal = items.reduce((sum, item) => sum + item.totalPrice, 0);
+                const serviceFee = billTotal * 0.1;
+                const participantServiceFee = billTotal > 0 ? (total / billTotal) * serviceFee : 0;
+                total += participantServiceFee;
+            }
+
+            return total;
+        }
+
+        function updateUI() {
+            // Update participants list
+            const participantsList = document.getElementById('participantsList');
+            participantsList.innerHTML = participants.map(p => 
+                `<span class="participant-tag">${p}<span class="remove-participant" onclick="removeParticipant('${p}')">×</span></span>`
+            ).join('');
+
+            // Update table headers
+            const table = document.getElementById('itemsTable');
+            const headerRow = table.querySelector('thead tr');
+            headerRow.innerHTML = `
+                <th>Название</th>
+                <th>Кол-во</th>
+                <th>Цена/шт</th>
+                <th>Сумма</th>
+                ${participants.map(p => `<th>${p.slice(0, 8)}</th>`).join('')}
+                <th>🗑️</th>
+            `;
+
+            // Update table body
+            const tbody = document.getElementById('itemsBody');
+            tbody.innerHTML = items.map(item => `
+                <tr data-id="${item.id}">
+                    <td><input class="editable" value="${item.name}" onblur="updateItem(${item.id}, 'name', this.value)"></td>
+                    <td><input class="editable" type="number" value="${item.quantity}" min="1" onblur="updateItem(${item.id}, 'quantity', this.value)"></td>
+                    <td><input class="editable" type="number" value="${item.pricePerUnit.toFixed(2)}" min="0" step="0.01" onblur="updateItem(${item.id}, 'pricePerUnit', this.value)"></td>
+                    <td><input class="editable" type="number" value="${item.totalPrice.toFixed(2)}" min="0" step="0.01" onblur="updateItem(${item.id}, 'totalPrice', this.value)"></td>
+                    ${participants.map(p => `<td><input class="quantity-input" type="number" min="0" value="${item.assignments[p] || 0}" onchange="updateAssignment(${item.id}, '${p}', this.value)"></td>`).join('')}
+                    <td><button class="btn-danger" onclick="removeItem(${item.id})">🗑️</button></td>
+                </tr>
+            `).join('');
+
+            // Update results
+            const results = document.getElementById('results');
+            const billTotal = items.reduce((sum, item) => sum + item.totalPrice, 0);
+            const includeService = document.getElementById('serviceFee').checked;
+            const serviceFee = includeService ? billTotal * 0.1 : 0;
+            const finalTotal = billTotal + serviceFee;
+
+            results.innerHTML = `
+                ${participants.map(p => `
+                    <div class="result-row">
+                        <span>${p}:</span>
+                        <span>${calculateTotal(p).toFixed(2)} ₽</span>
+                    </div>
+                `).join('')}
+                <div class="result-row">
+                    <span>Счет:</span>
+                    <span>${billTotal.toFixed(2)} ₽</span>
+                </div>
+                ${includeService ? `
+                <div class="result-row">
+                    <span>Сервисный сбор:</span>
+                    <span>${serviceFee.toFixed(2)} ₽</span>
+                </div>
+                ` : ''}
+                <div class="result-row">
+                    <span>ИТОГО:</span>
+                    <span class="total-highlight">${finalTotal.toFixed(2)} ₽</span>
+                </div>
+            `;
+        }
+
+        function clearAll() {
+            if (confirm('Очистить все данные?')) {
+                participants = ['Участник 1', 'Участник 2'];
+                items = [{ id: 1, name: 'Новая позиция', quantity: 1, pricePerUnit: 0, totalPrice: 0, assignments: {} }];
+                nextId = 2;
+                updateUI();
+            }
+        }
+
+        function shareResults() {
+            const billTotal = items.reduce((sum, item) => sum + item.totalPrice, 0);
+            const includeService = document.getElementById('serviceFee').checked;
+            const serviceFee = includeService ? billTotal * 0.1 : 0;
+            const finalTotal = billTotal + serviceFee;
+
+            let message = '💸 Разделение счета:\n\n';
+            
+            participants.forEach(p => {
+                const total = calculateTotal(p);
+                if (total > 0) {
+                    message += `👤 ${p}: ${total.toFixed(2)} ₽\n`;
+                }
+            });
+
+            message += `\n📊 Общий счет: ${billTotal.toFixed(2)} ₽`;
+            if (includeService) {
+                message += `\n🔄 Сервисный сбор: ${serviceFee.toFixed(2)} ₽`;
+            }
+            message += `\n💰 ИТОГО: ${finalTotal.toFixed(2)} ₽`;
+
+            if (navigator.share) {
+                navigator.share({
+                    title: 'Разделение счета',
+                    text: message
+                });
+            } else {
+                // Fallback - copy to clipboard
+                navigator.clipboard.writeText(message).then(() => {
+                    alert('Результат скопирован в буфер обмена!');
+                }).catch(() => {
+                    alert(message);
+                });
+            }
+        }
+
+        // Initialize
+        document.getElementById('serviceFee').addEventListener('change', updateUI);
+        document.getElementById('newParticipant').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') addParticipant();
+        });
+        
+        updateUI();
+    </script>
+</body>
+</html>
