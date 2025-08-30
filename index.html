@@ -3,8 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Калькулятор с распознаванием чеков</title>
-    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js"></script>
+    <title>Калькулятор разделения счета</title>
     <style>
         * {
             box-sizing: border-box;
@@ -81,1111 +80,188 @@
             box-shadow: 0 4px 15px rgba(0,0,0,0.1);
         }
         
-        .progress-container {
-            background: #f5f5f5;
-            border-radius: 10px;
-            padding: 20px;
-            text-align: center;
-            margin: 15px 0;
-            display: none;
+        .participant-tag {
+            display: inline-block;
+            background: #e3f2fd;
+            color: #1976d2;
+            padding: 5px 10px;
+            border-radius: 20px;
+            margin: 2px;
+            font-size: 12px;
+            position: relative;
         }
         
-        .progress-bar {
+        .remove-participant {
+            margin-left: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            color: #f44336;
+        }
+        
+        .input-group {
+            display: flex;
+            gap: 5px;
+            margin-bottom: 10px;
+        }
+        
+        input, button {
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+        
+        input {
+            flex: 1;
+        }
+        
+        .btn {
+            background: #1976d2;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-weight: 500;
+            transition: background 0.3s;
+        }
+        
+        .btn:hover {
+            background: #1565c0;
+        }
+        
+        .btn-success {
+            background: #4caf50;
+        }
+        
+        .btn-success:hover {
+            background: #45a049;
+        }
+        
+        .btn-danger {
+            background: #f44336;
+            padding: 5px 8px;
+            font-size: 12px;
+        }
+        
+        .table-container {
+            overflow-x: auto;
+            margin-bottom: 15px;
+        }
+        
+        table {
             width: 100%;
-            height: 10px;
-            background: #ddd;
+            min-width: 600px;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        
+        th, td {
+            padding: 8px 4px;
+            text-align: center;
+            border-bottom: 1px solid #eee;
+            font-size: 11px;
+        }
+        
+        th {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            font-weight: 600;
+        }
+        
+        .editable {
+            background: none;
+            border: none;
+            width: 100%;
+            text-align: center;
+            font-size: 11px;
+            padding: 2px;
+        }
+        
+        .editable:focus {
+            outline: 2px solid #1976d2;
+            border-radius: 4px;
+        }
+        
+        .quantity-input {
+            width: 40px;
+            padding: 2px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            text-align: center;
+            font-size: 11px;
+        }
+        
+        .results-grid {
+            display: grid;
+            gap: 15px;
+        }
+        
+        .result-card {
+            background: linear-gradient(135deg, #4caf50 0%, #45a049 100%);
+            color: white;
+            border-radius: 15px;
+            padding: 15px;
+        }
+        
+        .result-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.2);
+        }
+        
+        .result-row:last-child {
+            border-bottom: none;
+            font-weight: bold;
+            font-size: 16px;
+        }
+        
+        .checkbox-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .share-btn {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 25px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 20px;
+            box-shadow: 0 4px 15px rgba(255,107,107,0.4);
+            transition: transform 0.3s;
+        }
+        
+        .share-btn:hover {
+            transform: translateY(-2px);
+        }
+        
+        .total-highlight {
+            font-size: 18px;
+            font-weight: bold;
+            color: #4caf50;
+        }
+        
+        .process-btn {
+            background: #28a745;
+            margin: 10px;
+        }
+
+        .debug {
+            background: #fff3cd;
+            padding: 10px;
             border-radius: 5px;
-            overflow: hidden;
             margin: 10px 0;
-        }
-        
-        .progress-fill {
-            height: 100%;
-            background: linear-gradient(90deg, #4caf50, #8bc34a);
-            width: 0%;
-            transition: width 0.3s;
-        }
-        
-        .participant-tag {
-            display: inline-block;
-            background: #e3f2fd;
-            color: #1976d2;
-            padding: 5px 10px;
-            border-radius: 20px;
-            margin: 2px;
             font-size: 12px;
-            position: relative;
-        }
-        
-        .remove-participant {
-            margin-left: 5px;
-            cursor: pointer;
-            font-weight: bold;
-            color: #f44336;
-        }
-        
-        .input-group {
-            display: flex;
-            gap: 5px;
-            margin-bottom: 10px;
-        }
-        
-        input, button {
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            font-size: 14px;
-        }
-        
-        input {
-            flex: 1;
-        }
-        
-        .btn {
-            background: #1976d2;
-            color: white;
-            border: none;
-            cursor: pointer;
-            font-weight: 500;
-            transition: background 0.3s;
-        }
-        
-        .btn:hover {
-            background: #1565c0;
-        }
-        
-        .btn-success {
-            background: #4caf50;
-        }
-        
-        .btn-success:hover {
-            background: #45a049;
-        }
-        
-        .btn-danger {
-            background: #f44336;
-            padding: 5px 8px;
-            font-size: 12px;
-        }
-        
-        .table-container {
-            overflow-x: auto;
-            margin-bottom: 15px;
-        }
-        
-        table {
-            width: 100%;
-            min-width: 600px;
-            border-collapse: collapse;
-            background: white;
-            border-radius: 10px;
-            overflow: hidden;
-        }
-        
-        th, td {
-            padding: 8px 4px;
-            text-align: center;
-            border-bottom: 1px solid #eee;
-            font-size: 11px;
-        }
-        
-        th {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            font-weight: 600;
-        }
-        
-        .editable {
-            background: none;
-            border: none;
-            width: 100%;
-            text-align: center;
-            font-size: 11px;
-            padding: 2px;
-        }
-        
-        .editable:focus {
-            outline: 2px solid #1976d2;
-            border-radius: 4px;
-        }
-        
-        .quantity-input {
-            width: 40px;
-            padding: 2px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            text-align: center;
-            font-size: 11px;
-        }
-        
-        .results-grid {
-            display: grid;
-            gap: 15px;
-        }
-        
-        .result-card {
-            background: linear-gradient(135deg, #4caf50 0%, #45a049 100%);
-            color: white;
-            border-radius: 15px;
-            padding: 15px;
-        }
-        
-        .result-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 8px 0;
-            border-bottom: 1px solid rgba(255,255,255,0.2);
-        }
-        
-        .result-row:last-child {
-            border-bottom: none;
-            font-weight: bold;
-            font-size: 16px;
-        }
-        
-        .checkbox-container {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin-bottom: 15px;
-        }
-        
-        .share-btn {
-            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%);
-            color: white;
-            border: none;
-            padding: 15px 30px;
-            border-radius: 25px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            width: 100%;
-            margin-top: 20px;
-            box-shadow: 0 4px 15px rgba(255,107,107,0.4);
-            transition: transform 0.3s;
-        }
-        
-        .share-btn:hover {
-            transform: translateY(-2px);
-        }
-        
-        .total-highlight {
-            font-size: 18px;
-            font-weight: bold;
-            color: #4caf50;
-        }
-        
-        .ocr-results {
-            background: #f8f9fa;
-            border-radius: 10px;
-            padding: 15px;
-            margin: 15px 0;
-            max-height: 200px;
-            overflow-y: auto;
-            font-family: monospace;
-            font-size: 12px;
-            white-space: pre-wrap;
-            word-break: break-all;
-        }
-        
-        .process-btn {
-            background: #28a745;
-            margin: 10px;
-        }
-        
-        .loading {
-            opacity: 0.6;
-            pointer-events: none;
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="header">
-            <h1>📸 Калькулятор с распознаванием чеков</h1>
-            <p>Сфотографируй чек - получи список позиций!</p>
-        </div>
-
-        <!-- OCR Section -->
-        <div class="card">
-            <div class="camera-section">
-                <h3>🤖 Распознавание чека</h3>
-                <input type="file" id="receiptFile" class="file-input" accept="image/*" capture="environment">
-                <button class="camera-btn" onclick="openCamera()">
-                    📷 Сфотографировать чек
-                </button>
-                <button class="camera-btn process-btn" onclick="openGallery()">
-                    🖼️ Выбрать из галереи
-                </button>
-                <input type="file" id="galleryFile" class="file-input" accept="image/*">
-                
-                <div class="preview-container" id="previewContainer" style="display: none;">
-                    <img id="receiptPreview" class="receipt-preview" alt="Превью чека">
-                    <br>
-                    <button class="camera-btn process-btn" onclick="processReceipt()">
-                        🔍 Распознать чек
-                    </button>
-                </div>
-                
-                <div class="progress-container" id="progressContainer">
-                    <div>🤖 Распознавание чека...</div>
-                    <div class="progress-bar">
-                        <div class="progress-fill" id="progressFill"></div>
-                    </div>
-                    <div id="progressText">Инициализация...</div>
-                </div>
-                
-                <div class="ocr-results" id="ocrResults" style="display: none;"></div>
-            </div>
-        </div>
-
-        <!-- Service Fee -->
-        <div class="card">
-            <div class="checkbox-container">
-                <input type="checkbox" id="serviceFee" checked>
-                <label for="serviceFee">Включить сервисный сбор 10%</label>
-            </div>
-        </div>
-
-        <!-- Participants -->
-        <div class="card">
-            <h3>👥 Участники</h3>
-            <div id="participantsList">
-                <span class="participant-tag">Участник 1<span class="remove-participant" onclick="removeParticipant('Участник 1')">×</span></span>
-                <span class="participant-tag">Участник 2<span class="remove-participant" onclick="removeParticipant('Участник 2')">×</span></span>
-            </div>
-            <div class="input-group">
-                <input type="text" id="newParticipant" placeholder="Добавить участника">
-                <button class="btn" onclick="addParticipant()">Добавить</button>
-            </div>
-        </div>
-
-        <!-- Add Item -->
-        <div class="card">
-            <button class="btn btn-success" onclick="addNewItem()" style="width: 100%; margin-bottom: 10px;">+ Добавить позицию вручную</button>
-            <button class="btn btn-danger" onclick="clearAll()" style="width: 100%;">🗑️ Очистить все</button>
-        </div>
-
-        <!-- Items Table -->
-        <div class="card">
-            <div class="table-container">
-                <table id="itemsTable">
-                    <thead>
-                        <tr>
-                            <th>Название</th>
-                            <th>Кол-во</th>
-                            <th>Цена/шт</th>
-                            <th>Сумма</th>
-                            <th>Участник 1</th>
-                            <th>Участник 2</th>
-                            <th>🗑️</th>
-                        </tr>
-                    </thead>
-                    <tbody id="itemsBody">
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-        <!-- Results -->
-        <div class="card">
-            <div class="result-card">
-                <h3 style="margin-bottom: 15px;">💰 Результаты</h3>
-                <div id="results">
-                    <div class="result-row">
-                        <span>Участник 1:</span>
-                        <span>0.00 ₽</span>
-                    </div>
-                    <div class="result-row">
-                        <span>Участник 2:</span>
-                        <span>0.00 ₽</span>
-                    </div>
-                    <div class="result-row">
-                        <span>Общий счет:</span>
-                        <span class="total-highlight">0.00 ₽</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <button class="share-btn" onclick="shareResults()">
-            📤 Поделиться результатами
-        </button>
-    </div>
-
-    <script>
-        let participants = ['Участник 1', 'Участник 2'];
-        let items = [];
-        let nextId = 1;
-        let currentImage = null;
-        let worker = null;
-
-        // Initialize
-        document.addEventListener('DOMContentLoaded', function() {
-            updateUI();
-            
-            // Add event listeners
-            document.getElementById('serviceFee').addEventListener('change', updateUI);
-            document.getElementById('newParticipant').addEventListener('keypress', function(e) {
-                if (e.key === 'Enter') addParticipant();
-            });
-            
-            document.getElementById('receiptFile').addEventListener('change', handleFileSelect);
-            document.getElementById('galleryFile').addEventListener('change', handleFileSelect);
-        });
-
-        // Open camera
-        function openCamera() {
-            document.getElementById('receiptFile').click();
-        }
-
-        // Open gallery
-        function openGallery() {
-            document.getElementById('galleryFile').click();
-        }
-
-        // Handle file selection
-        function handleFileSelect(e) {
-            const file = e.target.files[0];
-            if (file && file.type.startsWith('image/')) {
-                currentImage = file;
-                
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    const preview = document.getElementById('receiptPreview');
-                    preview.src = e.target.result;
-                    document.getElementById('previewContainer').style.display = 'block';
-                };
-                reader.readAsDataURL(file);
-            }
-        }
-
-        // Initialize Tesseract worker
-        async function initTesseract() {
-            if (!worker) {
-                const progressFill = document.getElementById('progressFill');
-                const progressText = document.getElementById('progressText');
-                
-                worker = await Tesseract.createWorker('rus+eng', 1, {
-                    logger: function(m) {
-                        console.log(m);
-                        if (m.status === 'recognizing text') {
-                            const progress = Math.round(m.progress * 100);
-                            progressFill.style.width = progress + '%';
-                            progressText.textContent = `Распознавание: ${progress}%`;
-                        } else {
-                            progressText.textContent = m.status;
-                        }
-                    }
-                });
-            }
-        }
-
-        // Process receipt with OCR
-        async function processReceipt() {
-            if (!currentImage) {
-                alert('Сначала выберите фото чека!');
-                return;
-            }
-
-            const progressContainer = document.getElementById('progressContainer');
-            const ocrResults = document.getElementById('ocrResults');
-            
-            try {
-                progressContainer.style.display = 'block';
-                document.body.classList.add('loading');
-                
-                await initTesseract();
-                
-                const { data: { text } } = await worker.recognize(currentImage);
-                
-                // Show OCR results
-                ocrResults.textContent = text;
-                ocrResults.style.display = 'block';
-                
-                // Parse receipt data
-                const parsedItems = parseReceiptText(text);
-                
-                // Add parsed items to the list
-                if (parsedItems.length > 0) {
-                    parsedItems.forEach(item => {
-                        items.push({
-                            id: nextId++,
-                            name: item.name,
-                            quantity: item.quantity,
-                            pricePerUnit: item.pricePerUnit,
-                            totalPrice: item.totalPrice,
-                            assignments: {}
-                        });
-                    });
-                    
-                    updateUI();
-                    alert(`Распознано ${parsedItems.length} позиций! Проверьте и отредактируйте при необходимости.`);
-                } else {
-                    alert('Не удалось распознать позиции. Попробуйте другое фото или добавьте позиции вручную.');
-                }
-                
-            } catch (error) {
-                console.error('OCR Error:', error);
-                alert('Ошибка распознавания. Попробуйте другое фото.');
-            } finally {
-                progressContainer.style.display = 'none';
-                document.body.classList.remove('loading');
-            }
-        }
-
-        // Parse receipt text and extract items
-        function parseReceiptText(text) {
-            const lines = text.split('\n').map(line => line.trim()).filter(line => line.length > 2);
-            const items = [];
-            
-            console.log('Parsing receipt text:', text);
-            
-            // Различные паттерны для поиска позиций в чеке
-            const patterns = [
-                // Паттерн: Название ... Цена
-                /^(.+?)\s+(\d+[,\.]\d{2})$/,
-                // Паттерн: Название Количество x Цена = Сумма
-                /^(.+?)\s+(\d+)\s*[x×*]\s*(\d+[,\.]\d{2})\s*=?\s*(\d+[,\.]\d{2})$/,
-                // Паттерн: Название Количество шт Цена
-                /^(.+?)\s+(\d+)\s*шт\.?\s+(\d+[,\.]\d{2})$/,
-                // Паттерн: Количество Название Цена
-                /^(\d+)\s+(.+?)\s+(\d+[,\.]\d{2})$/
-            ];
-            
-            lines.forEach((line, index) => {
-                // Пропускаем строки с общей информацией
-                if (line.includes('ИТОГО') || line.includes('СУММА') || line.includes('СДАЧА') || 
-                    line.includes('КАРТА') || line.includes('НАЛИЧН') || line.includes('НДС') ||
-                    line.includes('КАСС') || line.includes('ЧЕК') || line.length < 3) {
-                    return;
-                }
-                
-                // Пробуем найти цены в строке
-                const priceMatch = line.match(/(\d+[,\.]\d{2})/g);
-                if (!priceMatch) return;
-                
-                // Простой парсинг: название + последняя цена в строке
-                const lastPrice = priceMatch[priceMatch.length - 1];
-                const nameMatch = line.replace(/\s+\d+[,\.]\d{2}.*$/, '').trim();
-                
-                if (nameMatch && nameMatch.length > 2) {
-                    const price = parseFloat(lastPrice.replace(',', '.'));
-                    
-                    if (price > 0) {
-                        // Очистим название от лишних символов
-                        const cleanName = nameMatch.replace(/[^\u0400-\u04FF\w\s\-]/g, '').trim();
-                        
-                        if (cleanName.length > 2) {
-                            items.push({
-                                name: cleanName,
-                                quantity: 1,
-                                pricePerUnit: Math.round(price * 100) / 100,
-                                totalPrice: Math.round(price * 100) / 100
-                            });
-                        }
-                    }
-                }
-            });
-            
-            console.log('Parsed items:', items);
-            return items;
-        }
-
-        // Add participant
-        function addParticipant() {
-            const input = document.getElementById('newParticipant');
-            const name = input.value.trim();
-            if (name && !participants.includes(name)) {
-                participants.push(name);
-                input.value = '';
-                      .progress-fill {
-            height: 100%;
-            background: linear-gradient(90deg, #4caf50, #8bc34a);
-            width: 0%;
-            transition: width 0.3s;
-        }
-        
-        .participant-tag {
-            display: inline-block;
-            background: #e3f2fd;
-            color: #1976d2;
-            padding: 5px 10px;
-            border-radius: 20px;
-            margin: 2px;
-            font-size: 12px;
-            position: relative;
-        }
-        
-        .remove-participant {
-            margin-left: 5px;
-            cursor: pointer;
-            font-weight: bold;
-            color: #f44336;
-        }
-        
-        .input-group {
-            display: flex;
-            gap: 5px;
-            margin-bottom: 10px;
-        }
-        
-        input, button {
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            font-size: 14px;
-        }
-        
-        input {
-            flex: 1;
-        }
-        
-        .btn {
-            background: #1976d2;
-            color: white;
-            border: none;
-            cursor: pointer;
-            font-weight: 500;
-            transition: background 0.3s;
-        }
-        
-        .btn:hover {
-            background: #1565c0;
-        }
-        
-        .btn-success {
-            background: #4caf50;
-        }
-        
-        .btn-success:hover {
-            background: #45a049;
-        }
-        
-        .btn-danger {
-            background: #f44336;
-            padding: 5px 8px;
-            font-size: 12px;
-        }
-        
-        .table-container {
-            overflow-x: auto;
-            margin-bottom: 15px;
-        }
-        
-        table {
-            width: 100%;
-            min-width: 600px;
-            border-collapse: collapse;
-            background: white;
-            border-radius: 10px;
-            overflow: hidden;
-        }
-        
-        th, td {
-            padding: 8px 4px;
-            text-align: center;
-            border-bottom: 1px solid #eee;
-            font-size: 11px;
-        }
-        
-        th {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            font-weight: 600;
-        }
-        
-        .editable {
-            background: none;
-            border: none;
-            width: 100%;
-            text-align: center;
-            font-size: 11px;
-            padding: 2px;
-        }
-        
-        .editable:focus {
-            outline: 2px solid #1976d2;
-            border-radius: 4px;
-        }
-        
-        .quantity-input {
-            width: 40px;
-            padding: 2px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            text-align: center;
-            font-size: 11px;
-        }
-        
-        .results-grid {
-            display: grid;
-            gap: 15px;
-        }
-        
-        .result-card {
-            background: linear-gradient(135deg, #4caf50 0%, #45a049 100%);
-            color: white;
-            border-radius: 15px;
-            padding: 15px;
-        }
-        
-        .result-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 8px 0;
-            border-bottom: 1px solid rgba(255,255,255,0.2);
-        }
-        
-        .result-row:last-child {
-            border-bottom: none;
-            font-weight: bold;
-            font-size: 16px;
-        }
-        
-        .checkbox-container {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin-bottom: 15px;
-        }
-        
-        .share-btn {
-            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%);
-            color: white;
-            border: none;
-            padding: 15px 30px;
-            border-radius: 25px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            width: 100%;
-            margin-top: 20px;
-            box-shadow: 0 4px 15px rgba(255,107,107,0.4);
-            transition: transform 0.3s;
-        }
-        
-        .share-btn:hover {
-            transform: translateY(-2px);
-        }
-        
-        .total-highlight {
-            font-size: 18px;
-            font-weight: bold;
-            color: #4caf50;
-        }
-        
-        .ocr-results {
-            background: #f8f9fa;
-            border-radius: 10px;
-            padding: 15px;
-            margin: 15px 0;
-            max-height: 200px;
-            overflow-y: auto;
-            font-family: monospace;
-            font-size: 12px;
-            white-space: pre-wrap;
-            word-break: break-all;
-        }
-        
-        .process-btn {
-            background: #28a745;
-            margin: 10px;
-        }
-        
-        .loading {
-            opacity: 0.6;
-            pointer-events: none;
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="header">
-            <h1>📸 Калькулятор с распознаванием чеков</h1>
-            <p>Сфотографируй чек - получи список позиций!</p>
-        </div>
-
-        <!-- OCR Section -->
-        <div class="card">
-            <div class="camera-section">
-                <h3>🤖 Распознавание чека</h3>
-                <input type="file" id="receiptFile" class="file-input" accept="image/*" capture="environment">
-                <button class="camera-btn" onclick="document.getElementById('receiptFile').click()">
-                    📷 Сфотографировать чек
-                </button>
-                <button class="camera-btn process-btn" onclick="document.getElementById('galleryFile').click()">
-                    🖼️ Выбрать из галереи
-                </button>
-                <input type="file" id="galleryFile" class="file-input" accept="image/*">
-                
-                <div class="preview-container" id="previewContainer" style="display: none;">
-                    <img id="receiptPreview" class="receipt-preview" alt="Превью чека">
-                    <button class="camera-btn process-btn" onclick="processReceipt()">
-                        🔍 Распознать чек
-                    </button>
-                </div>
-                
-                <div class="progress-container" id="progressContainer">
-                    <div>🤖 Распознавание чека...</div>
-                    <div class="progress-bar">
-                        <div class="progress-fill" id="progressFill"></div>
-                    </div>
-                    <div id="progressText">Инициализация...</div>
-                </div>
-                
-                <div class="ocr-results" id="ocrResults" style="display: none;"></div>
-            </div>
-        </div>
-
-        <!-- Service Fee -->
-        <div class="card">
-            <div class="checkbox-container">
-                <input type="checkbox" id="serviceFee" checked>
-                <label for="serviceFee">Включить сервисный сбор 10%</label>
-            </div>
-        </div>
-
-        <!-- Participants -->
-        <div class="card">
-            <h3>👥 Участники</h3>
-            <div id="participantsList">
-                <span class="participant-tag">Участник 1<span class="remove-participant" onclick="removeParticipant('Участник 1')">×</span></span>
-                <span class="participant-tag">Участник 2<span class="remove-participant" onclick="removeParticipant('Участник 2')">×</span></span>
-            </div>
-            <div class="input-group">
-                <input type="text" id="newParticipant" placeholder="Добавить участника">
-                <button class="btn" onclick="addParticipant()">Добавить</button>
-            </div>
-        </div>
-
-        <!-- Add Item -->
-        <div class="card">
-            <button class="btn btn-success" onclick="addNewItem()" style="width: 100%; margin-bottom: 10px;">+ Добавить позицию вручную</button>
-            <button class="btn btn-danger" onclick="clearAll()" style="width: 100%;">🗑️ Очистить все</button>
-        </div>
-
-        <!-- Items Table -->
-        <div class="card">
-            <div class="table-container">
-                <table id="itemsTable">
-                    <thead>
-                        <tr>
-                            <th>Название</th>
-                            <th>Кол-во</th>
-                            <th>Цена/шт</th>
-                            <th>Сумма</th>
-                            <th>Участник 1</th>
-                            <th>Участник 2</th>
-                            <th>🗑️</th>
-                        </tr>
-                    </thead>
-                    <tbody id="itemsBody">
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-        <!-- Results -->
-        <div class="card">
-            <div class="result-card">
-                <h3 style="margin-bottom: 15px;">💰 Результаты</h3>
-                <div id="results">
-                    <div class="result-row">
-                        <span>Участник 1:</span>
-                        <span>0.00 ₽</span>
-                    </div>
-                    <div class="result-row">
-                        <span>Участник 2:</span>
-                        <span>0.00 ₽</span>
-                    </div>
-                    <div class="result-row">
-                        <span>Общий счет:</span>
-                        <span class="total-highlight">0.00 ₽</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <button class="share-btn" onclick="shareResults()">
-            📤 Поделиться результатами
-        </button>
-    </div>
-
-    <script>
-        let participants = ['Участник 1', 'Участник 2'];
-        let items = [];
-        let nextId = 1;
-        let currentImage = null;
-        let worker = null;
-
-        // Initialize Tesseract worker
-        async function initTesseract() {
-            if (!worker) {
-                worker = await Tesseract.createWorker({
-                    logger: m => {
-                        const progressFill = document.getElementById('progressFill');
-                        const progressText = document.getElementById('progressText');
-                        
-                        if (m.status === 'recognizing text') {
-                            const progress = Math.round(m.progress * 100);
-                            progressFill.style.width = progress + '%';
-                            progressText.textContent = `Распознавание: ${progress}%`;
-                        } else {
-                            progressText.textContent = m.status;
-                        }
-                    }
-                });
-                
-                await worker.loadLanguage('rus+eng');
-                await worker.initialize('rus+eng');
-            }
-        }
-
-        // Handle file selection
-        document.getElementById('receiptFile').addEventListener('change', handleFileSelect);
-        document.getElementById('galleryFile').addEventListener('change', handleFileSelect);
-
-        function handleFileSelect(e) {
-            const file = e.target.files[0];
-            if (file && file.type.startsWith('image/')) {
-                currentImage = file;
-                
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    const preview = document.getElementById('receiptPreview');
-                    preview.src = e.target.result;
-                    document.getElementById('previewContainer').style.display = 'block';
-                };
-                reader.readAsDataURL(file);
-            }
-        }
-
-        // Process receipt with OCR
-        async function processReceipt() {
-            if (!currentImage) return;
-
-            const progressContainer = document.getElementById('progressContainer');
-            const ocrResults = document.getElementById('ocrResults');
-            
-            try {
-                progressContainer.style.display = 'block';
-                document.body.classList.add('loading');
-                
-                await initTesseract();
-                
-                const { data: { text } } = await worker.recognize(currentImage);
-                
-                // Show OCR results
-                ocrResults.textContent = text;
-                ocrResults.style.display = 'block';
-                
-                // Parse receipt data
-                const parsedItems = parseReceiptText(text);
-                
-                // Add parsed items to the list
-                if (parsedItems.length > 0) {
-                    parsedItems.forEach(item => {
-                        items.push({
-                            id: nextId++,
-                            name: item.name,
-                            quantity: item.quantity,
-                            pricePerUnit: item.pricePerUnit,
-                            totalPrice: item.totalPrice,
-                            assignments: {}
-                        });
-                    });
-                    
-                    updateUI();
-                    alert(`Распознано ${parsedItems.length} позиций! Проверьте и отредактируйте при необходимости.`);
-                } else {
-                    alert('Не удалось распознать позиции. Попробуйте другое фото или добавьте позиции вручную.');
-                }
-                
-            } catch (error) {
-                console.error('OCR Error:', error);
-                alert('Ошибка распознавания. Попробуйте другое фото.');
-            } finally {
-                progressContainer.style.display = 'none';
-                document.body.classList.remove('loading');
-            }
-        }
-
-        // Parse receipt text and extract items
-        function parseReceiptText(text) {
-            const lines = text.split('\n').map(line => line.trim()).filter(line => line.length > 0);
-            const items = [];
-            
-            // Различные паттерны для поиска позиций в чеке
-            const patterns = [
-                // Паттерн: Название ... Цена
-                /^(.+?)\s+(\d+[\.,]\d{2})$/,
-                // Паттерн: Название Количество x Цена = Сумма
-                /^(.+?)\s+(\d+)\s*[x×]\s*(\d+[\.,]\d{2})\s*=?\s*(\d+[\.,]\d{2})$/,
-                // Паттерн: Название Количество шт Цена
-                /^(.+?)\s+(\d+)\s*шт\.?\s+(\d+[\.,]\d{2})$/,
-                // Паттерн: Количество Название Цена
-                /^(\d+)\s+(.+?)\s+(\d+[\.,]\d{2})$/
-            ];
-            
-            lines.forEach(line => {
-                // Пропускаем строки с общей информацией
-                if (line.includes('ИТОГО') || line.includes('СУММА') || line.includes('СДАЧА') || 
-                    line.includes('КАРТА') || line.includes('НАЛИЧН') || line.length < 3) {
-                    return;
-                }
-                
-                // Попробуем найти совпадение с паттернами
-                for (let pattern of patterns) {
-                    const match = line.match(pattern);
-                    if (match) {
-                        let name, quantity, pricePerUnit, totalPrice;
-                        
-                        if (match.length === 3) { // Название и цена
-                            name = match[1].trim();
-                            quantity = 1;
-                            totalPrice = parseFloat(match[2].replace(',', '.'));
-                            pricePerUnit = totalPrice;
-                        } else if (match.length === 5) { // Полная информация
-                            name = match[1].trim();
-                            quantity = parseInt(match[2]);
-                            pricePerUnit = parseFloat(match[3].replace(',', '.'));
-                            totalPrice = parseFloat(match[4].replace(',', '.'));
-                        } else if (match.length === 4) { // Количество, название, цена
-                            if (match[1].match(/^\d+$/)) { // Первый элемент - число
-                                quantity = parseInt(match[1]);
-                                name = match[2].trim();
-                                totalPrice = parseFloat(match[3].replace(',', '.'));
-                                pricePerUnit = totalPrice / quantity;
-                            } else { // Название, количество, цена
-                                name = match[1].trim();
-                                quantity = parseInt(match[2]);
-                                totalPrice = parseFloat(match[3].replace(',', '.'));
-                                pricePerUnit = totalPrice / quantity;
-                            }
-                        }
-                        
-                        // Валидация данных
-                        if (name && name.length > 2 && quantity > 0 && totalPrice > 0) {
-                            // Очистим название от лишних символов
-                            name = name.replace(/[^а-яё\w\s\-]/gi, '').trim();
-                            
-                            if (name.length > 2) {
-                                items.push({
-                                    name: name,
-                                    quantity: quantity,
-                                    pricePerUnit: Math.round(pricePerUnit * 100) / 100,
-                                    totalPrice: Math.round(totalPrice * 100) / 100
-                     }
-        
-        .table-container {
-            overflow-x: auto;
-            margin-bottom: 15px;
-        }
-        
-        table {
-            width: 100%;
-            min-width: 600px;
-            border-collapse: collapse;
-            background: white;
-            border-radius: 10px;
-            overflow: hidden;
-        }
-        
-        th, td {
-            padding: 8px 4px;
-            text-align: center;
-            border-bottom: 1px solid #eee;
-            font-size: 11px;
-        }
-        
-        th {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            font-weight: 600;
-        }
-        
-        .editable {
-            background: none;
-            border: none;
-            width: 100%;
-            text-align: center;
-            font-size: 11px;
-            padding: 2px;
-        }
-        
-        .editable:focus {
-            outline: 2px solid #1976d2;
-            border-radius: 4px;
-        }
-        
-        .quantity-input {
-            width: 40px;
-            padding: 2px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            text-align: center;
-            font-size: 11px;
-        }
-        
-        .results-grid {
-            display: grid;
-            gap: 15px;
-        }
-        
-        .result-card {
-            background: linear-gradient(135deg, #4caf50 0%, #45a049 100%);
-            color: white;
-            border-radius: 15px;
-            padding: 15px;
-        }
-        
-        .result-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 8px 0;
-            border-bottom: 1px solid rgba(255,255,255,0.2);
-        }
-        
-        .result-row:last-child {
-            border-bottom: none;
-            font-weight: bold;
-            font-size: 16px;
-        }
-        
-        .checkbox-container {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin-bottom: 15px;
-        }
-        
-        .share-btn {
-            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%);
-            color: white;
-            border: none;
-            padding: 15px 30px;
-            border-radius: 25px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            width: 100%;
-            margin-top: 20px;
-            box-shadow: 0 4px 15px rgba(255,107,107,0.4);
-            transition: transform 0.3s;
-        }
-        
-        .share-btn:hover {
-            transform: translateY(-2px);
-        }
-        
-        .total-highlight {
-            font-size: 18px;
-            font-weight: bold;
-            color: #4caf50;
+            display: none;
         }
     </style>
 </head>
@@ -1196,6 +272,28 @@
             <p>Легко делим счета в ресторанах</p>
         </div>
 
+        <div class="debug" id="debug">Загрузка...</div>
+
+        <!-- Photo Section -->
+        <div class="card">
+            <div class="camera-section">
+                <h3>📷 Фото чека (пока без распознавания)</h3>
+                <input type="file" id="receiptFile" class="file-input" accept="image/*" capture="environment">
+                <button class="camera-btn" id="cameraBtn">
+                    📷 Сфотографировать чек
+                </button>
+                <button class="camera-btn process-btn" id="galleryBtn">
+                    🖼️ Выбрать из галереи
+                </button>
+                <input type="file" id="galleryFile" class="file-input" accept="image/*">
+                
+                <div class="preview-container" id="previewContainer" style="display: none;">
+                    <img id="receiptPreview" class="receipt-preview" alt="Превью чека">
+                    <p>OCR распознавание будет добавлено позже.<br>Пока добавляйте позиции вручную.</p>
+                </div>
+            </div>
+        </div>
+
         <!-- Service Fee -->
         <div class="card">
             <div class="checkbox-container">
@@ -1208,19 +306,17 @@
         <div class="card">
             <h3>👥 Участники</h3>
             <div id="participantsList">
-                <span class="participant-tag">Участник 1<span class="remove-participant" onclick="removeParticipant('Участник 1')">×</span></span>
-                <span class="participant-tag">Участник 2<span class="remove-participant" onclick="removeParticipant('Участник 2')">×</span></span>
             </div>
             <div class="input-group">
                 <input type="text" id="newParticipant" placeholder="Добавить участника">
-                <button class="btn" onclick="addParticipant()">Добавить</button>
+                <button class="btn" id="addParticipantBtn">Добавить</button>
             </div>
         </div>
 
         <!-- Add Item -->
         <div class="card">
-            <button class="btn btn-success" onclick="addNewItem()" style="width: 100%; margin-bottom: 10px;">+ Добавить позицию</button>
-            <button class="btn btn-danger" onclick="clearAll()" style="width: 100%;">🗑️ Очистить все</button>
+            <button class="btn btn-success" id="addItemBtn" style="width: 100%; margin-bottom: 10px;">+ Добавить позицию</button>
+            <button class="btn btn-danger" id="clearAllBtn" style="width: 100%;">🗑️ Очистить все</button>
         </div>
 
         <!-- Items Table -->
@@ -1228,26 +324,15 @@
             <div class="table-container">
                 <table id="itemsTable">
                     <thead>
-                        <tr>
+                        <tr id="tableHeader">
                             <th>Название</th>
                             <th>Кол-во</th>
                             <th>Цена/шт</th>
                             <th>Сумма</th>
-                            <th>Участник 1</th>
-                            <th>Участник 2</th>
                             <th>🗑️</th>
                         </tr>
                     </thead>
                     <tbody id="itemsBody">
-                        <tr data-id="1">
-                            <td><input class="editable" value="Новая позиция" onblur="updateItem(1, 'name', this.value)"></td>
-                            <td><input class="editable" type="number" value="1" min="1" onblur="updateItem(1, 'quantity', this.value)"></td>
-                            <td><input class="editable" type="number" value="0" min="0" step="0.01" onblur="updateItem(1, 'pricePerUnit', this.value)"></td>
-                            <td><input class="editable" type="number" value="0" min="0" step="0.01" onblur="updateItem(1, 'totalPrice', this.value)"></td>
-                            <td><input class="quantity-input" type="number" min="0" value="0" onchange="updateAssignment(1, 'Участник 1', this.value)"></td>
-                            <td><input class="quantity-input" type="number" min="0" value="0" onchange="updateAssignment(1, 'Участник 2', this.value)"></td>
-                            <td><button class="btn-danger" onclick="removeItem(1)">🗑️</button></td>
-                        </tr>
                     </tbody>
                 </table>
             </div>
@@ -1258,52 +343,134 @@
             <div class="result-card">
                 <h3 style="margin-bottom: 15px;">💰 Результаты</h3>
                 <div id="results">
-                    <div class="result-row">
-                        <span>Участник 1:</span>
-                        <span>0.00 ₽</span>
-                    </div>
-                    <div class="result-row">
-                        <span>Участник 2:</span>
-                        <span>0.00 ₽</span>
-                    </div>
-                    <div class="result-row">
-                        <span>Общий счет:</span>
-                        <span class="total-highlight">0.00 ₽</span>
-                    </div>
                 </div>
             </div>
         </div>
 
-        <button class="share-btn" onclick="shareResults()">
+        <button class="share-btn" id="shareBtn">
             📤 Поделиться результатами
         </button>
     </div>
 
     <script>
+        console.log('Script loading...');
+        
         let participants = ['Участник 1', 'Участник 2'];
-        let items = [
-            { id: 1, name: 'Новая позиция', quantity: 1, pricePerUnit: 0, totalPrice: 0, assignments: {} }
-        ];
-        let nextId = 2;
+        let items = [];
+        let nextId = 1;
+        let currentImage = null;
 
+        function debug(message) {
+            console.log(message);
+            const debugEl = document.getElementById('debug');
+            debugEl.textContent = message;
+            debugEl.style.display = 'block';
+            setTimeout(() => {
+                debugEl.style.display = 'none';
+            }, 3000);
+        }
+
+        // Инициализация при загрузке страницы
+        document.addEventListener('DOMContentLoaded', function() {
+            debug('DOM загружен, инициализация...');
+            
+            // Привязка событий к кнопкам
+            document.getElementById('cameraBtn').addEventListener('click', function() {
+                debug('Нажата кнопка камеры');
+                document.getElementById('receiptFile').click();
+            });
+
+            document.getElementById('galleryBtn').addEventListener('click', function() {
+                debug('Нажата кнопка галереи');
+                document.getElementById('galleryFile').click();
+            });
+
+            document.getElementById('addParticipantBtn').addEventListener('click', function() {
+                debug('Добавление участника');
+                addParticipant();
+            });
+
+            document.getElementById('addItemBtn').addEventListener('click', function() {
+                debug('Добавление позиции');
+                addNewItem();
+            });
+
+            document.getElementById('clearAllBtn').addEventListener('click', function() {
+                debug('Очистка всех данных');
+                clearAll();
+            });
+
+            document.getElementById('shareBtn').addEventListener('click', function() {
+                debug('Поделиться результатами');
+                shareResults();
+            });
+
+            // Обработка файлов
+            document.getElementById('receiptFile').addEventListener('change', handleFileSelect);
+            document.getElementById('galleryFile').addEventListener('change', handleFileSelect);
+
+            // Обработка чекбокса сервисного сбора
+            document.getElementById('serviceFee').addEventListener('change', updateUI);
+
+            // Обработка Enter в поле добавления участника
+            document.getElementById('newParticipant').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    addParticipant();
+                }
+            });
+
+            // Первичное обновление UI
+            updateUI();
+            debug('Инициализация завершена');
+        });
+
+        // Обработка выбора файла
+        function handleFileSelect(e) {
+            const file = e.target.files[0];
+            debug('Файл выбран: ' + (file ? file.name : 'нет'));
+            
+            if (file && file.type.startsWith('image/')) {
+                currentImage = file;
+                
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const preview = document.getElementById('receiptPreview');
+                    preview.src = e.target.result;
+                    document.getElementById('previewContainer').style.display = 'block';
+                    debug('Превью отображено');
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        // Добавить участника
         function addParticipant() {
             const input = document.getElementById('newParticipant');
             const name = input.value.trim();
+            
             if (name && !participants.includes(name)) {
                 participants.push(name);
                 input.value = '';
                 updateUI();
+                debug('Добавлен участник: ' + name);
+            } else if (!name) {
+                debug('Введите имя участника');
+            } else {
+                debug('Участник уже существует');
             }
         }
 
+        // Удалить участника
         function removeParticipant(name) {
             participants = participants.filter(p => p !== name);
             items.forEach(item => {
                 delete item.assignments[name];
             });
             updateUI();
+            debug('Удален участник: ' + name);
         }
 
+        // Добавить новую позицию
         function addNewItem() {
             items.push({
                 id: nextId++,
@@ -1314,13 +481,17 @@
                 assignments: {}
             });
             updateUI();
+            debug('Добавлена новая позиция');
         }
 
+        // Удалить позицию
         function removeItem(id) {
             items = items.filter(item => item.id !== id);
             updateUI();
+            debug('Удалена позиция с ID: ' + id);
         }
 
+        // Обновить позицию
         function updateItem(id, field, value) {
             const item = items.find(i => i.id === id);
             if (!item) return;
@@ -1329,18 +500,19 @@
                 item.name = value;
             } else if (field === 'quantity') {
                 item.quantity = Math.max(1, parseInt(value) || 1);
-                item.totalPrice = item.quantity * item.pricePerUnit;
+                item.totalPrice = Math.round(item.quantity * item.pricePerUnit * 100) / 100;
             } else if (field === 'pricePerUnit') {
                 item.pricePerUnit = Math.max(0, parseFloat(value) || 0);
-                item.totalPrice = item.quantity * item.pricePerUnit;
+                item.totalPrice = Math.round(item.quantity * item.pricePerUnit * 100) / 100;
             } else if (field === 'totalPrice') {
                 item.totalPrice = Math.max(0, parseFloat(value) || 0);
-                item.pricePerUnit = item.quantity > 0 ? item.totalPrice / item.quantity : 0;
+                item.pricePerUnit = item.quantity > 0 ? Math.round((item.totalPrice / item.quantity) * 100) / 100 : 0;
             }
             
             updateUI();
         }
 
+        // Обновить назначение участнику
         function updateAssignment(id, participant, quantity) {
             const item = items.find(i => i.id === id);
             if (!item) return;
@@ -1355,6 +527,7 @@
             updateUI();
         }
 
+        // Вычислить общую сумму для участника
         function calculateTotal(participant) {
             let total = 0;
             items.forEach(item => {
@@ -1369,24 +542,26 @@
             const includeService = document.getElementById('serviceFee').checked;
             if (includeService) {
                 const billTotal = items.reduce((sum, item) => sum + item.totalPrice, 0);
-                const serviceFee = billTotal * 0.1;
-                const participantServiceFee = billTotal > 0 ? (total / billTotal) * serviceFee : 0;
-                total += participantServiceFee;
+                if (billTotal > 0) {
+                    const serviceFee = billTotal * 0.1;
+                    const participantServiceFee = (total / billTotal) * serviceFee;
+                    total += participantServiceFee;
+                }
             }
 
-            return total;
+            return Math.round(total * 100) / 100;
         }
 
+        // Обновить интерфейс
         function updateUI() {
-            // Update participants list
+            // Обновить список участников
             const participantsList = document.getElementById('participantsList');
             participantsList.innerHTML = participants.map(p => 
                 `<span class="participant-tag">${p}<span class="remove-participant" onclick="removeParticipant('${p}')">×</span></span>`
             ).join('');
 
-            // Update table headers
-            const table = document.getElementById('itemsTable');
-            const headerRow = table.querySelector('thead tr');
+            // Обновить заголовки таблицы
+            const headerRow = document.getElementById('tableHeader');
             headerRow.innerHTML = `
                 <th>Название</th>
                 <th>Кол-во</th>
@@ -1396,7 +571,7 @@
                 <th>🗑️</th>
             `;
 
-            // Update table body
+            // Обновить тело таблицы
             const tbody = document.getElementById('itemsBody');
             tbody.innerHTML = items.map(item => `
                 <tr data-id="${item.id}">
@@ -1409,89 +584,18 @@
                 </tr>
             `).join('');
 
-            // Update results
+            // Обновить результаты
             const results = document.getElementById('results');
             const billTotal = items.reduce((sum, item) => sum + item.totalPrice, 0);
             const includeService = document.getElementById('serviceFee').checked;
             const serviceFee = includeService ? billTotal * 0.1 : 0;
             const finalTotal = billTotal + serviceFee;
 
-            results.innerHTML = `
-                ${participants.map(p => `
-                    <div class="result-row">
-                        <span>${p}:</span>
-                        <span>${calculateTotal(p).toFixed(2)} ₽</span>
-                    </div>
-                `).join('')}
-                <div class="result-row">
-                    <span>Счет:</span>
-                    <span>${billTotal.toFixed(2)} ₽</span>
-                </div>
-                ${includeService ? `
-                <div class="result-row">
-                    <span>Сервисный сбор:</span>
-                    <span>${serviceFee.toFixed(2)} ₽</span>
-                </div>
-                ` : ''}
-                <div class="result-row">
-                    <span>ИТОГО:</span>
-                    <span class="total-highlight">${finalTotal.toFixed(2)} ₽</span>
-                </div>
-            `;
-        }
-
-        function clearAll() {
-            if (confirm('Очистить все данные?')) {
-                participants = ['Участник 1', 'Участник 2'];
-                items = [{ id: 1, name: 'Новая позиция', quantity: 1, pricePerUnit: 0, totalPrice: 0, assignments: {} }];
-                nextId = 2;
-                updateUI();
-            }
-        }
-
-        function shareResults() {
-            const billTotal = items.reduce((sum, item) => sum + item.totalPrice, 0);
-            const includeService = document.getElementById('serviceFee').checked;
-            const serviceFee = includeService ? billTotal * 0.1 : 0;
-            const finalTotal = billTotal + serviceFee;
-
-            let message = '💸 Разделение счета:\n\n';
-            
+            let resultsHTML = '';
             participants.forEach(p => {
                 const total = calculateTotal(p);
                 if (total > 0) {
-                    message += `👤 ${p}: ${total.toFixed(2)} ₽\n`;
-                }
-            });
-
-            message += `\n📊 Общий счет: ${billTotal.toFixed(2)} ₽`;
-            if (includeService) {
-                message += `\n🔄 Сервисный сбор: ${serviceFee.toFixed(2)} ₽`;
-            }
-            message += `\n💰 ИТОГО: ${finalTotal.toFixed(2)} ₽`;
-
-            if (navigator.share) {
-                navigator.share({
-                    title: 'Разделение счета',
-                    text: message
-                });
-            } else {
-                // Fallback - copy to clipboard
-                navigator.clipboard.writeText(message).then(() => {
-                    alert('Результат скопирован в буфер обмена!');
-                }).catch(() => {
-                    alert(message);
-                });
-            }
-        }
-
-        // Initialize
-        document.getElementById('serviceFee').addEventListener('change', updateUI);
-        document.getElementById('newParticipant').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') addParticipant();
-        });
-        
-        updateUI();
-    </script>
-</body>
-</html>
+                    resultsHTML += `
+                        <div class="result-row">
+                            <span>${p}:</span>
+                            <span>$
